@@ -1,14 +1,13 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+from sqlalchemy.exc import SQLAlchemyError
 
-# Criação do engine e da sessão
 engine = create_engine('sqlite:///devflix.db')
 Session = sessionmaker(bind=engine)
 session = Session()
 
 Base = declarative_base()
 
-# Definição da classe Plano
 class Plano(Base):
     __tablename__ = 'planos'
 
@@ -20,13 +19,12 @@ class Plano(Base):
     def __repr__(self):
         return f'<Plano(nome={self.nome})>'
 
-# Definição da classe Filme
 class Filme(Base):
     __tablename__ = 'filmes'
 
     id = Column(Integer, primary_key=True)
     nome_do_filme = Column(String, nullable=False)
-    duracao = Column(Integer, nullable=False)  # Duração em minutos
+    duracao = Column(Integer, nullable=False) 
     genero = Column(String, nullable=False)
     ano_de_lancamento = Column(Integer, nullable=False)
     autor = Column(String, nullable=False)
@@ -35,14 +33,13 @@ class Filme(Base):
     def __repr__(self):
         return f'<Filme(nome_do_filme={self.nome_do_filme}, duracao={self.duracao} min, genero={self.genero}, ano_de_lancamento={self.ano_de_lancamento}, autor={self.autor})>'
 
-# Definição da classe Serie
 class Serie(Base):
     __tablename__ = 'series'
 
     id = Column(Integer, primary_key=True)
     nome_da_serie = Column(String, nullable=False)
     temporadas = Column(Integer, nullable=False)
-    duracao_dos_episodios = Column(Integer, nullable=False)  # Duração em minutos
+    duracao_dos_episodios = Column(Integer, nullable=False)  
     genero = Column(String, nullable=False)
     ano_de_lancamento = Column(Integer, nullable=False)
     autor = Column(String, nullable=False)
@@ -51,93 +48,129 @@ class Serie(Base):
     def __repr__(self):
         return f'<Serie(nome_da_serie={self.nome_da_serie}, temporadas={self.temporadas}, duracao_dos_episodios={self.duracao_dos_episodios} min, genero={self.genero}, ano_de_lancamento={self.ano_de_lancamento}, autor={self.autor})>'
 
-# Criação das tabelas no banco de dados
 Base.metadata.create_all(engine)
 
 def adicionar_plano(nome):
-    plano = session.query(Plano).filter_by(nome=nome).first()
-    if not plano:
-        plano = Plano(nome=nome)
-        session.add(plano)
-        session.commit()
+    try:
+        plano = session.query(Plano).filter_by(nome=nome).first()
+        if not plano:
+            plano = Plano(nome=nome)
+            session.add(plano)
+            session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao adicionar plano: {e}')
 
 def adicionar_filme(nome_do_filme, duracao, genero, ano_de_lancamento, autor, plano_nome):
-    plano = session.query(Plano).filter_by(nome=plano_nome).first()
-    if not plano:
-        print(f'Plano "{plano_nome}" não encontrado.')
-        return
+    try:
+        plano = session.query(Plano).filter_by(nome=plano_nome).first()
+        if not plano:
+            print(f'Plano "{plano_nome}" não encontrado.')
+            return
 
-    filme = Filme(nome_do_filme=nome_do_filme, duracao=duracao, genero=genero, ano_de_lancamento=ano_de_lancamento, autor=autor, plano=plano)
-    session.add(filme)
-    session.commit()
+        filme = Filme(nome_do_filme=nome_do_filme, duracao=duracao, genero=genero, ano_de_lancamento=ano_de_lancamento, autor=autor, plano=plano)
+        session.add(filme)
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao adicionar filme: {e}')
 
 def adicionar_serie(nome_da_serie, temporadas, duracao_dos_episodios, genero, ano_de_lancamento, autor, plano_nome):
-    plano = session.query(Plano).filter_by(nome=plano_nome).first()
-    if not plano:
-        print(f'Plano "{plano_nome}" não encontrado.')
-        return
+    try:
+        plano = session.query(Plano).filter_by(nome=plano_nome).first()
+        if not plano:
+            print(f'Plano "{plano_nome}" não encontrado.')
+            return
 
-    serie = Serie(nome_da_serie=nome_da_serie, temporadas=temporadas, duracao_dos_episodios=duracao_dos_episodios, genero=genero, ano_de_lancamento=ano_de_lancamento, autor=autor, plano=plano)
-    session.add(serie)
-    session.commit()
+        serie = Serie(nome_da_serie=nome_da_serie, temporadas=temporadas, duracao_dos_episodios=duracao_dos_episodios, genero=genero, ano_de_lancamento=ano_de_lancamento, autor=autor, plano=plano)
+        session.add(serie)
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao adicionar série: {e}')
 
 def alterar_filme(filme_id, novo_nome_do_filme, nova_duracao, novo_genero, novo_ano_de_lancamento, novo_autor):
-    filme = session.query(Filme).get(filme_id)
-    if filme:
-        filme.nome_do_filme = novo_nome_do_filme
-        filme.duracao = nova_duracao
-        filme.genero = novo_genero
-        filme.ano_de_lancamento = novo_ano_de_lancamento
-        filme.autor = novo_autor
-        session.commit()
-    else:
-        print(f'Filme com ID {filme_id} não encontrado.')
+    try:
+        filme = session.query(Filme).get(filme_id)
+        if filme:
+            filme.nome_do_filme = novo_nome_do_filme
+            filme.duracao = nova_duracao
+            filme.genero = novo_genero
+            filme.ano_de_lancamento = novo_ano_de_lancamento
+            filme.autor = novo_autor
+            session.commit()
+        else:
+            print(f'Filme com ID {filme_id} não encontrado.')
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao alterar filme: {e}')
 
 def alterar_serie(serie_id, novo_nome_da_serie, novas_temporadas, nova_duracao_dos_episodios, novo_genero, novo_ano_de_lancamento, novo_autor):
-    serie = session.query(Serie).get(serie_id)
-    if serie:
-        serie.nome_da_serie = novo_nome_da_serie
-        serie.temporadas = novas_temporadas
-        serie.duracao_dos_episodios = nova_duracao_dos_episodios
-        serie.genero = novo_genero
-        serie.ano_de_lancamento = novo_ano_de_lancamento
-        serie.autor = novo_autor
-        session.commit()
-    else:
-        print(f'Serie com ID {serie_id} não encontrada.')
+    try:
+        serie = session.query(Serie).get(serie_id)
+        if serie:
+            serie.nome_da_serie = novo_nome_da_serie
+            serie.temporadas = novas_temporadas
+            serie.duracao_dos_episodios = nova_duracao_dos_episodios
+            serie.genero = novo_genero
+            serie.ano_de_lancamento = novo_ano_de_lancamento
+            serie.autor = novo_autor
+            session.commit()
+        else:
+            print(f'Serie com ID {serie_id} não encontrada.')
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao alterar série: {e}')
 
 def deletar_filme(filme_id):
-    filme = session.query(Filme).get(filme_id)
-    if filme:
-        session.delete(filme)
-        session.commit()
-    else:
-        print(f'Filme com ID {filme_id} não encontrado.')
+    try:
+        filme = session.query(Filme).get(filme_id)
+        if filme:
+            session.delete(filme)
+            session.commit()
+        else:
+            print(f'Filme com ID {filme_id} não encontrado.')
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao deletar filme: {e}')
 
 def deletar_serie(serie_id):
-    serie = session.query(Serie).get(serie_id)
-    if serie:
-        session.delete(serie)
-        session.commit()
-    else:
-        print(f'Serie com ID {serie_id} não encontrada.')
+    try:
+        serie = session.query(Serie).get(serie_id)
+        if serie:
+            session.delete(serie)
+            session.commit()
+        else:
+            print(f'Serie com ID {serie_id} não encontrada.')
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f'Erro ao deletar série: {e}')
 
 def consultar_filmes():
-    filmes = session.query(Filme).all()
-    for filme in filmes:
-        print(filme)
+    try:
+        filmes = session.query(Filme).all()
+        for filme in filmes:
+            print(filme)
+    except SQLAlchemyError as e:
+        print(f'Erro ao consultar filmes: {e}')
 
 def consultar_series():
-    series = session.query(Serie).all()
-    for serie in series:
-        print(serie)
+    try:
+        series = session.query(Serie).all()
+        for serie in series:
+            print(serie)
+    except SQLAlchemyError as e:
+        print(f'Erro ao consultar séries: {e}')
+
+def recomendacoes():
+    print("Filme: ", "Deu a louca na chapeuzinho ", "Duração do Filme: ", 160, "Genero:", " animação",  "Ano de lançamento: ", 2006, " Cory Edwards")
+    print("Série: ", "Peaky Blinders ", "Temporada: ", 6, "Duração Episodio: ", 57,  " Genero:", " Historical drama: ",  2013, " Steven Knight")  
 
 def cancelar_plano():
     print("Plano cancelado. Encerrando o programa.")
     exit()
 
 def main():
-    # Adicionar planos iniciais
     adicionar_plano('Gold')
     adicionar_plano('Platinum')
     adicionar_plano('Diamond')
@@ -147,7 +180,8 @@ def main():
         print('1. Plano Gold (Neste plano você só tem direito a filmes)')
         print('2. Plano Platinum (Neste plano você só tem direito a séries)')
         print('3. Plano Diamond (Neste plano você tem direito a filmes e séries)')
-        print('4. Cancelar Plano e Sair')
+        print('4. Recomendações DevFlix (Nossa recomendação de filmes e séries)')
+        print('5. Cancelar Plano e Sair')
 
         opcao = input('Opção: ')
         if opcao == '1':
@@ -284,6 +318,13 @@ def main():
                     print('Opção inválida. Tente novamente.')
 
         elif opcao == '4':
+             while True:
+                 recomendacoes()
+                 print('1. Voltar')
+                 escolha = input('Opção: ')
+                 if escolha == '1':  
+                    break
+        elif opcao == '5':
             cancelar_plano()
         else:
             print('Opção inválida. Tente novamente.')
